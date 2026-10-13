@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyA9FL3rfiG-u8VE1W2BECJHGwGCzCfDrbw",
+  authDomain: "virtual-memory-app.firebaseapp.com",
+  projectId: "virtual-memory-app",
+  storageBucket: "virtual-memory-app.firebasestorage.app",
+  messagingSenderId: "712517574141",
+  appId: "1:712517574141:web:2ed3a166fc45afa3824d94",
+  measurementId: "G-KE05SNT0PH"
+});
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Тест: Виртуальная память</title>
@@ -169,15 +182,32 @@ function renderLb(docs){
   tr.appendChild(dt);tb.appendChild(tr);
  });
 }
+
 (async()=>{
  try{
-  const u=await claude.use("user");if(u&&u.id)myId=await u.id();isOwner=!!(u&&u.isOwner&&u.isOwner());
-  db=await claude.use("db");
-  if(!db){$("lb").innerHTML='<tr><td colspan="3" class="m">Войдите в аккаунт, чтобы видеть общую таблицу</td></tr>';return}
-  const live=docs=>{renderLb(docs);$("note").textContent="🟢 Обновляется автоматически · "+new Date().toLocaleTimeString()};
-  db.collection("results").onSnapshot(s=>live(s.docs),e=>{$("note").textContent="🔴 Нет связи, пробую снова…"});
-  setInterval(async()=>{try{const s=await db.collection("results").get();live(s.docs)}catch(e){}},5000);
- }catch(e){$("lb").innerHTML='<tr><td colspan="3" class="m">Общая таблица недоступна</td></tr>'}
+  db = firebase.firestore();
+  isOwner = false;
+
+  const live = docs => {
+   renderLb(docs);
+   $("note").textContent =
+    "🟢 Табло обновлено · " +
+    new Date().toLocaleTimeString();
+  };
+
+  db.collection("results").onSnapshot(
+   snapshot => live(snapshot.docs),
+   error => {
+    console.error(error);
+    $("note").textContent =
+     "🔴 Ошибка загрузки: " + error.code;
+   }
+  );
+ }catch(e){
+  console.error(e);
+  $("note").textContent =
+   "🔴 Ошибка подключения Firebase";
+ }
 })();
 </script>
 </body>
