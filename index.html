@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тест: Виртуальная память</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#6b7280;--ac:#4f46e5;--ok:#16a34a;--okb:#dcfce7;--bad:#dc2626;--badb:#fee2e2;--bd:#e5e7eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141b;--card:#1c1f2a;--tx:#eceef5;--mut:#9aa1b2;--ac:#818cf8;--okb:#14532d;--badb:#7f1d1d;--bd:#2d3140}}
+:root[data-theme="dark"]{--bg:#12141b;--card:#1c1f2a;--tx:#eceef5;--mut:#9aa1b2;--ac:#818cf8;--okb:#14532d;--badb:#7f1d1d;--bd:#2d3140}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:20px;margin-bottom:16px}
+h1{font-size:22px;margin:0 0 6px}h2{font-size:18px;margin:0 0 12px}
+p.m{color:var(--mut);margin:0 0 14px}
+input{width:100%;padding:12px;margin-bottom:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;padding:13px;border:0;border-radius:10px;background:var(--ac);color:#fff;font-weight:600}
+.btn:disabled{opacity:.5}
+.btn.s{background:transparent;color:var(--ac);border:1px solid var(--ac);margin-top:10px}
+.opt{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
+.opt.ok{background:var(--okb);border-color:var(--ok)}.opt.bad{background:var(--badb);border-color:var(--bad)}
+.bar{height:6px;background:var(--bd);border-radius:3px;margin-bottom:14px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.q{font-weight:600;margin-bottom:14px}.cnt{color:var(--mut);font-size:13px;margin-bottom:6px}
+.big{font-size:44px;font-weight:700;text-align:center;margin:6px 0}
+.ex{font-size:14px;color:var(--mut);margin:8px 0 12px}
+.lb{width:100%;border-collapse:collapse;font-size:15px}.lb td,.lb th{padding:8px 4px;border-bottom:1px solid var(--bd);text-align:left}
+.lb th{color:var(--mut);font-size:13px}.lb .r{text-align:right}.me td{font-weight:700;color:var(--ac)}
+.hide{display:none}
+.opt.sel{background:var(--ac);color:#fff;border-color:var(--ac)}
+.del{border:0;background:transparent;color:var(--bad);font-size:16px;padding:2px 6px}
+body.board .nd{display:none}
+body.board .card:not(#lbcard){display:none}
+body.board .w{max-width:1000px}
+body.board .lb{font-size:clamp(20px,3.2vw,36px)}
+body.board h2{font-size:clamp(26px,4vw,44px);text-align:center}
+body.board #bt{position:fixed;top:8px;right:8px;width:auto;padding:6px 10px;font-size:12px;opacity:.5}
+</style>
+</head>
+<body>
+<div class="w">
+ <div id="start" class="card">
+  <h1>🧠 Виртуальная память</h1>
+  <p class="m">Преобразование адресов и алгоритмы замещения страниц · 15 вопросов</p>
+  <input id="fn" placeholder="Имя" maxlength="30" autocomplete="given-name">
+  <input id="ln" placeholder="Фамилия" maxlength="30" autocomplete="family-name">
+  <button class="btn" id="go">Начать тест</button>
+ </div>
+ <div id="quiz" class="card hide">
+  <div class="cnt" style="display:flex;justify-content:space-between"><span id="cnt"></span><b id="tm"></b></div><div class="bar"><i id="pb"></i></div>
+  <div class="q" id="qt"></div><div id="opts"></div>
+  <div class="ex hide" id="ex"></div>
+  <button class="btn hide" id="nx">Далее</button>
+ </div>
+ <div id="res" class="card hide">
+  <h2 id="rn"></h2><div class="big" id="rs"></div><p class="m" id="rp" style="text-align:center"></p>
+  <div id="rv" style="margin-top:12px"></div>
+  <button class="btn s" id="again">Пройти ещё раз</button>
+ </div>
+ <div class="card" id="lbcard">
+  <h2>🏆 Результаты участников</h2>
+  <button class="btn s" id="bt" style="margin:0 0 10px">🖥 Режим табло (для экрана)</button>
+  <div style="overflow-x:auto"><table class="lb"><thead><tr><th>#</th><th>Участник</th><th class="r">Баллы</th><th class="nd"></th></tr></thead><tbody id="lb"><tr><td colspan="3" class="m">Загрузка…</td></tr></tbody></table></div>
+  <p class="m" id="note" style="margin:10px 0 0;font-size:13px"></p>
+ </div>
+</div>
+<script>
+const Q=[
+["Что такое виртуальная память?",["Технология, позволяющая выполнять процессы, не помещающиеся целиком в ОЗУ","Физическая память увеличенного объёма","Кэш процессора","Память видеокарты"],0,"Виртуальная память отделяет логическое адресное пространство от физической памяти, часть данных хранится на диске."],
+["Что хранит таблица страниц?",["Список запущенных процессов","Соответствие виртуальных страниц физическим кадрам","Содержимое кэша","Очередь прерываний"],1,"Каждая запись (PTE) содержит номер кадра и биты управления: valid, dirty, reference."],
+["Сколько бит занимает смещение (offset) при размере страницы 4 КБ?",["10","11","12","16"],2,"4 КБ = 2¹² байт, поэтому смещение — 12 бит."],
+["Когда возникает страничное прерывание (page fault)?",["При делении на ноль","При обращении к странице, отсутствующей в физической памяти","При переполнении стека","При записи на диск"],1,"Бит valid = 0 → ОС загружает страницу с диска."],
+["Для чего нужен TLB?",["Для хранения файлов","Для шифрования памяти","Для кэширования записей таблицы страниц","Для планирования процессов"],2,"TLB ускоряет трансляцию адресов, избегая обращения к таблице страниц в ОЗУ."],
+["Размер страницы 4 КБ. Виртуальный адрес 0x3A5C. Каков номер страницы?",["0x0","0x3","0xA","0x5C"],1,"0x3A5C: старшая часть 0x3 — номер страницы, младшие 12 бит 0xA5C — смещение."],
+["Страница 3 отображена на кадр 7 (размер 4 КБ). Физический адрес для 0x3A5C?",["0x3A5C","0x7A5C","0x73A5","0xA5C7"],1,"Номер кадра 7 + смещение 0xA5C = 0x7A5C."],
+["Какую страницу вытесняет алгоритм FIFO?",["Наименее используемую","Ту, что дольше всех находится в памяти","Ту, что будет нужна позже всех","Случайную"],1,"FIFO использует очередь по времени загрузки страниц."],
+["Что такое аномалия Белади?",["Рост числа кадров может увеличить число страничных ошибок","Нехватка дискового пространства","Ошибка в TLB","Фрагментация кучи"],0,"Аномалия Белади наблюдается у FIFO."],
+["Какую страницу вытесняет оптимальный алгоритм (OPT)?",["Самую старую","Ту, к которой дольше всего не будет обращений в будущем","Самую большую","Последнюю загруженную"],1,"OPT даёт минимум ошибок, но нереализуем на практике — нужно знать будущее."],
+["Принцип алгоритма LRU:",["Вытесняется страница, которая использовалась давнее всех","Вытесняется самая новая страница","Вытесняется страница с наибольшим номером","Вытесняется случайная страница"],0,"LRU опирается на локальность обращений."],
+["Алгоритм «часы» (Clock) — это модификация…",["LRU с таблицей времени","FIFO с битом обращения (вторым шансом)","OPT","Случайного выбора"],1,"Если бит R = 1, он сбрасывается и страница получает второй шанс."],
+["Что такое трэшинг (thrashing)?",["Очистка кэша","Постоянная подкачка страниц, при которой процессор почти не выполняет полезную работу","Сжатие памяти","Ошибка адресации"],1,"Возникает, когда рабочие наборы процессов не помещаются в памяти."],
+["Для чего служит бит модификации (dirty bit)?",["Показывает, что страницу нужно записать на диск при вытеснении","Запрещает доступ к странице","Показывает владельца страницы","Включает кэширование"],0,"Если страница не изменялась, её можно просто отбросить без записи."],
+["FIFO, 3 кадра, строка обращений: 1, 2, 3, 1, 4, 2. Сколько страничных ошибок?",["3","4","5","6"],1,"Ошибки: 1,2,3 (3), затем 1 — попадание, 4 — ошибка (вытеснена 1), 2 — попадание. Итого 4."]
+];
+const $=id=>document.getElementById(id);
+let name="",i=0,score=0,locked=false,order=[],myId=null,db=null;
+function show(id){["start","quiz","res"].forEach(x=>$(x).classList.toggle("hide",x!==id))}
+$("go").onclick=()=>{
+ const f=$("fn").value.trim(),l=$("ln").value.trim();
+ if(!f||!l){alert("Введите имя и фамилию");return}
+ name=f+" "+l;i=0;score=0;ans=[];finished=false;show("quiz");render();startTimer();
+};
+function render(){
+ locked=false;const q=Q[i];
+ $("cnt").textContent="Вопрос "+(i+1)+" из "+Q.length;
+ $("pb").style.width=(i/Q.length*100)+"%";
+ $("qt").textContent=q[0];$("ex").classList.add("hide");$("nx").classList.add("hide");
+ $("opts").innerHTML="";
+ q[1].forEach((t,k)=>{const b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=()=>pick(k,b);$("opts").appendChild(b)});
+}
+let ans=[],isOwner=false,pend=null,lastDocs=[];
+let finished=false,tid=null,tOut=false;
+function startTimer(){
+ tOut=false;clearInterval(tid);const end=Date.now()+300000;
+ const tick=()=>{const s=Math.max(0,Math.ceil((end-Date.now())/1000));
+  $("tm").textContent="⏱ "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  $("tm").style.color=s<=30?"var(--bad)":"";
+  if(s<=0){tOut=true;locked=true;finish()}};
+ tick();tid=setInterval(tick,500);
+}
+function pick(k,btn){
+ if(locked)return;locked=true;
+ ans[i]=k;if(k===Q[i][2])score++;
+ btn.classList.add("sel");
+ $("nx").textContent=i===Q.length-1?"Завершить":"Далее";$("nx").classList.remove("hide");
+}
+function buildReview(){
+ const rv=$("rv");rv.innerHTML="";
+ Q.forEach((q,n)=>{
+  const ok=ans[n]===q[2],d=document.createElement("div");
+  d.style.cssText="padding:10px 0;border-top:1px solid var(--bd);font-size:14px";
+  const h=document.createElement("div");h.style.fontWeight="600";h.textContent=(ok?"✅ ":"❌ ")+(n+1)+". "+q[0];d.appendChild(h);
+  if(!ok){const a=document.createElement("div");a.style.color="var(--bad)";a.textContent=ans[n]===undefined?"Нет ответа":"Ваш ответ: "+q[1][ans[n]];d.appendChild(a)}
+  const c=document.createElement("div");c.style.color="var(--ok)";c.textContent="Верный ответ: "+q[1][q[2]];d.appendChild(c);
+  const e=document.createElement("div");e.className="ex";e.style.margin="4px 0 0";e.textContent=q[3];d.appendChild(e);
+  rv.appendChild(d);
+ });
+}
+$("nx").onclick=()=>{i++;if(i<Q.length)render();else finish()};
+async function finish(){
+ if(finished)return;finished=true;clearInterval(tid);show("res");buildReview();
+ $("rn").textContent=name+(tOut?" · ⏰ время вышло":"");$("rs").textContent=score+" / "+Q.length;
+ const p=Math.round(score/Q.length*100);
+ $("rp").textContent=p+"% — "+(p>=85?"отлично! 🎉":p>=60?"хорошо 👍":"стоит повторить тему 📚");
+ if(db){try{
+  const id="r"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  await db.collection("results").doc(id).set({name,score,total:Q.length,ts:Date.now(),uid:myId||""});
+  myId2=id;
+ }catch(e){$("note").textContent="Не удалось сохранить результат в общую таблицу."}}
+ else $("note").textContent="Общая таблица недоступна: результат не сохранён.";
+}
+let myId2=null;
+let wl=null;
+async function keepAwake(on){try{if(on&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen')}else if(wl){await wl.release();wl=null}}catch(e){}}
+function setBoard(on){keepAwake(on);document.body.classList.toggle('board',on);$('bt').textContent=on?'✕ Выйти':'🖥 Режим табло (для экрана)'}
+$('bt').onclick=()=>setBoard(!document.body.classList.contains('board'));
+if(/board/.test(location.hash+location.search))setBoard(true);
+$("again").onclick=()=>{show("start")};
+function renderLb(docs){
+ lastDocs=docs;
+ const rows=docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.score-a.score||a.ts-b.ts);
+ const tb=$("lb");tb.innerHTML="";
+ if(!rows.length){tb.innerHTML='<tr><td colspan="3" class="m">Пока нет результатов</td></tr>';return}
+ rows.forEach((r,k)=>{
+  const tr=document.createElement("tr");if(r.id===myId2)tr.className="me";
+  const medal=["🥇","🥈","🥉"][k]||(k+1);
+  [medal,r.name,r.score+"/"+r.total].forEach((t,c)=>{const td=document.createElement("td");td.textContent=t;if(c===2)td.className="r";tr.appendChild(td)});
+  const dt=document.createElement("td");dt.className="nd r";
+  if(isOwner){
+   const mk=(t,f)=>{const b=document.createElement("button");b.className="del";b.textContent=t;b.onclick=f;dt.appendChild(b)};
+   if(pend===r.id){
+    mk("✔ Удалить",async()=>{try{await db.collection("results").doc(r.id).delete();pend=null;lastDocs=lastDocs.filter(x=>x.id!==r.id);renderLb(lastDocs)}catch(e){pend=null;renderLb(lastDocs);$("note").textContent="❌ Ошибка удаления: "+((e&&(e.message||e.code))||"нет прав")}});
+    mk("✕",()=>{pend=null;renderLb(lastDocs)});
+   }else mk("🗑",()=>{pend=r.id;renderLb(lastDocs)});
+  }
+  tr.appendChild(dt);tb.appendChild(tr);
+ });
+}
+(async()=>{
+ try{
+  const u=await claude.use("user");if(u&&u.id)myId=await u.id();isOwner=!!(u&&u.isOwner&&u.isOwner());
+  db=await claude.use("db");
+  if(!db){$("lb").innerHTML='<tr><td colspan="3" class="m">Войдите в аккаунт, чтобы видеть общую таблицу</td></tr>';return}
+  const live=docs=>{renderLb(docs);$("note").textContent="🟢 Обновляется автоматически · "+new Date().toLocaleTimeString()};
+  db.collection("results").onSnapshot(s=>live(s.docs),e=>{$("note").textContent="🔴 Нет связи, пробую снова…"});
+  setInterval(async()=>{try{const s=await db.collection("results").get();live(s.docs)}catch(e){}},5000);
+ }catch(e){$("lb").innerHTML='<tr><td colspan="3" class="m">Общая таблица недоступна</td></tr>'}
+})();
+</script>
+</body>
+</html>
